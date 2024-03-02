@@ -1,5 +1,5 @@
 ##
-##display for 7.5 inch R/B/W 3 color eink to display better quality, need to use my convert script to convert picture to 3 colors 800x480 or 880x528
+##display for 7.5 inch R/B/W 3 color eink to display better quality
 ##
 ##
 from PIL import Image
@@ -9,37 +9,35 @@ import os
 import random
 from waveshare_epd import epd7in5b_V2
 import numpy
-#from waveshare_epd import epd7in5b_HD  #unquote this line if you are using higher version 7in5b_HD
+import sys
 
 EPD_WIDTH = 800
 EPD_HEIGHT = 480
 
-#unquote the below 2 lines if you are using higher version 7in5b_HD
-#EPD_WIDTH = 880
-#EPD_HEIGHT = 528
-
-#def choose_random_loading_image(path):
-#    images=os.listdir(path)
-#    loading_image=random.randint(0,len(images)-1)
-#   return path+images[loading_image]
-# define the picture directory
-picdir = '/home/pi/photos/'
+# Define the picture directory
+PIC_DIR = '/home/pi/photos/'
 
 def main():
     epd = epd7in5b_V2.EPD()
     epd.init()
 
-    localimg = random.choice(os.listdir(picdir))
-    # localimg = "eink_test.jpg"
+    localimg = random.choice(os.listdir(PIC_DIR))
+
+    # pass argument to override photo selection
+    if len(sys.argv) == 2:
+      localimg = sys.argv[1]
+
     print(localimg)
-    photo = Image.open(picdir+localimg).crop((0, 0, EPD_WIDTH, EPD_HEIGHT))
+
+    # Crop photo to the correct size or thie image wont be sent to the display
+    photo = Image.open(PIC_DIR+localimg).crop((0, 0, EPD_WIDTH, EPD_HEIGHT))
 
     # Create a new image with RGBA mode to strip out the red channel
     red_channel = Image.new("RGB", photo.size)
     pixels = photo.load()
     new_pixels = red_channel.load()
 
-    # loop through every pixel to determine the red pixels and remove the ones that aren't
+    # Loop through every pixel to determine the red pixels and remove the ones that aren't
     for i in range(photo.size[0]):
       for j in range(photo.size[1]):
         r, g, b = pixels[i, j]
@@ -59,7 +57,9 @@ def main():
     frame_red = epd.getbuffer(red_channel)
 
     epd.display(frame_black, frame_red)
+    epd.sleep()
     # time.sleep(3600)  # change the image every hour ,I quote this line as added the script in crontab
+
     exit()
     main()
 
