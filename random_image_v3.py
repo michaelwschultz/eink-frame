@@ -23,49 +23,40 @@ EPD_HEIGHT = 480
 #    loading_image=random.randint(0,len(images)-1)
 #   return path+images[loading_image]
 # define the picture directory
-picdir = '/home/pi/your_directory/bmp/'
+picdir = '/home/pi/photos/'
 
 def main():
     epd = epd7in5b_V2.EPD()
-#    epd = epd7in5b_HD.EPD() #for 7in5B_HD with 880x528
     epd.init()
-    imageB1 = Image.new('1', (EPD_WIDTH, EPD_HEIGHT), 255)    # 1: clear the frame
-#    ImageDraw.Draw(imageB)
-    imageR1 = Image.new('1', (EPD_WIDTH, EPD_HEIGHT), 255)
-#    ImageDraw.Draw(imageR)
-#    localimg = choose_random_loading_image('bmp/')
-#  imageB will be save for black image imagR for red image
-    localimg = random.choice(os.listdir('bmp/'))
-    imageB1 = Image.open(picdir+localimg).convert('RGB')
-    imageR1 = Image.open(picdir+localimg).convert('RGB')
-    pixelB = imageB1.load()
-    pixelR = imageR1.load()
-    for i in range(imageB1.size[0]):
-        for j in range(imageB1.size[1]):
-            if pixelB[i, j] == (255, 0, 0):
-                imageB1.putpixel((i, j), (255, 255, 255))
-            else:
-                pass
-    for m in range(imageR1.size[0]):
-        for n in range(imageR1.size[1]):
-            if pixelR[m, n] != (255, 0, 0):
-                imageR1.putpixel((m, n), (255, 255, 255))
-            if pixelR[m, n] == (255, 0, 0):
-                imageR1.putpixel((m, n), (0, 0, 0))
-            else:
-                pass
-#    h, w = image.size
-#    if h < w:
-#        image = image.rotate(270, expand=True)
-#    else:
-#        pass
-#    resized_img = image.resize((EPD_WIDTH, EPD_HEIGHT))
-    imageB1 = imageB1.convert('1', dither=Image.FLOYDSTEINBERG)
-    imageR1 = imageR1.convert('1')
-#    imageB1.show()
-#    imageR1.show()
-    epd.display(epd.getbuffer(imageB1), epd.getbuffer(imageR1))
-#    time.sleep(3600)  # change the image every hour ,I quote this line as added the script in crontab
+
+    localimg = random.choice(os.listdir(picdir))
+    print(localimg)
+    photo = Image.open(picdir+localimg).crop((0, 0, EPD_WIDTH, EPD_HEIGHT))
+
+    # Create a new image with RGBA mode to strip out the red channel
+    red_channel = Image.new("RGB", photo.size)
+    pixels = photo.load()
+    new_pixels = red_channel.load()
+
+    # loop through every pixel to determine the red pixels and remove the ones that aren't
+    for i in range(photo.size[0]):
+      for j in range(photo.size[1]):
+        r, g, b = pixels[i, j]
+        # Check if red is the dominant color
+        if (r-g >= 80) and (r-b >= 80):
+            # Keep the red pixel as is, make it fully opaque in the new image
+            new_pixels[i, j] = (r, g, b)
+        else:
+            # Make non-red pixels transparent or set to a background color
+            # For transparency, set the alpha to 0
+            new_pixels[i, j] = (255, 255, 255)  # This makes non-red areas white "transparent"
+
+
+    frame_black = epd.getbuffer(photo)
+    frame_red = epd.getbuffer(red_channel)
+
+    epd.display(frame_black, frame_red)
+    # time.sleep(3600)  # change the image every hour ,I quote this line as added the script in crontab
     exit()
     main()
 
