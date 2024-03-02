@@ -30,6 +30,7 @@ def main():
     epd.init()
 
     localimg = random.choice(os.listdir(picdir))
+    # localimg = "eink_test.jpg"
     print(localimg)
     photo = Image.open(picdir+localimg).crop((0, 0, EPD_WIDTH, EPD_HEIGHT))
 
@@ -45,13 +46,15 @@ def main():
         # Check if red is the dominant color
         if (r-g >= 80) and (r-b >= 80):
             # Keep the red pixel as is, make it fully opaque in the new image
-            new_pixels[i, j] = (r, g, b)
+            new_pixels[i, j] = (0, g, b)
         else:
             # Make non-red pixels transparent or set to a background color
             # For transparency, set the alpha to 0
             new_pixels[i, j] = (255, 255, 255)  # This makes non-red areas white "transparent"
 
 
+    # (OPTIONAL) convert to bw
+    # photo = photo.convert('1', dither=Image.FLOYDSTEINBERG)
     frame_black = epd.getbuffer(photo)
     frame_red = epd.getbuffer(red_channel)
 
