@@ -2,21 +2,19 @@
 ##display for 7.5 inch R/B/W 3 color eink to display better quality
 ##
 ##
-from PIL import Image
-from PIL import ImageDraw
 import time
-import os
+from PIL import Image
+
 from waveshare_epd import epd7in5b_V2
-import numpy
-import sys
 
 EPD_WIDTH = 800
 EPD_HEIGHT = 480
 
 # Define the picture directory
-localimg = '/home/pi/display-images/images/current-weather.png'
+localimg = '/home/pi/display-images/images/fetched-image.png'
 
 def send_image_to_display():
+    start_time = time.time()
     epd = epd7in5b_V2.EPD()
     epd.init()
 
@@ -48,7 +46,9 @@ def send_image_to_display():
     epd.display(frame_black, frame_red)
     epd.sleep()
 
-    print("Image sent to display.")
+    elapsed_time = time.time() - start_time
+
+    print(f"Image sent to display. Took {elapsed_time:.2f} seconds")
     exit()
 
 if __name__ == '__main__':
