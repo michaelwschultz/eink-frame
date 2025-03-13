@@ -17,7 +17,7 @@ python fetch_and_display_image.py --frame weather
 
 ## Remote backend for fetching data
 
-For ease of iteration, the backend was created on ![val.town](https://www.val.town/x/michaelwschultz/frame).
+For ease of iteration, the backend was created on [val.town](https://www.val.town/x/michaelwschultz/frame).
 There you can view each frame and remix them if you'd like.
 You can view the image that will be sent down to the pi and make any changes you'd like.
 You can also control the list of images you'd like to show up on your pi so you don't
@@ -35,6 +35,6 @@ pm2 logs fetch_and_display
 
 ## 3D Printing
 
-Right now, I'm using ![this design](https://makerworld.com/en/models/787533-waveshare-7-5-inch-e-paper-case#profileId-725479).
+Right now, I'm using [this design](https://makerworld.com/en/models/787533-waveshare-7-5-inch-e-paper-case#profileId-725479).
 
-Here's ![another design](https://www.printables.com/model/219811-waveshare-75-e-paper-case-symmetrical-borders) if you're interested in adding a battery to your setup.
+Here's [another design](https://www.printables.com/model/219811-waveshare-75-e-paper-case-symmetrical-borders) if you're interested in adding a battery to your setup.
