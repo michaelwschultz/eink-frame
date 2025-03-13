@@ -37,6 +37,7 @@ def display_image(image_type):
 def fetch_frame_list():
     url = "https://michaelwschultz-generateframeimage.web.val.run?generate=list"
 
+    print("fetching frame list")
     try:
         response = requests.get(url)
 
@@ -87,7 +88,7 @@ def main(frame):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Skip cycle and display any frame by name.")
-    parser.add_argument("-F", "--frame", type=str, required=False, help="Name of the frame to display that matches list.")
+    parser.add_argument("-F", "--frame", type=str, default=None, required=False, help="Name of the frame to display that matches list.")
 
     args = parser.parse_args()
     main(args.frame)
