@@ -1,12 +1,12 @@
-import RPi.GPIO as GPIO
 import time
 import subprocess
 
+import RPi.GPIO as GPIO
 
 # GPIO Pins
 CLK = 31  # Clock pin
-DT = 37   # Data pin
-SW = 36    # Switch pin
+DT = 37  # Data pin
+SW = 36  # Switch pin
 
 # Setup
 GPIO.setmode(GPIO.BOARD)
@@ -16,6 +16,7 @@ GPIO.setup(SW, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 # Track last state of CLK
 last_clk_state = GPIO.input(CLK)
+
 
 def rotary_callback(channel):
     global last_clk_state
@@ -30,8 +31,10 @@ def rotary_callback(channel):
 
     last_clk_state = clk_state
 
+
 def button_callback(channel):
     subprocess.run(["python", "fetch_and_display_image.py"])
+
 
 # Add event detection
 GPIO.add_event_detect(CLK, GPIO.BOTH, callback=rotary_callback, bouncetime=10)
