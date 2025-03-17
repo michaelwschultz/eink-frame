@@ -1,7 +1,5 @@
 """This script is used to send an image to a Waveshare 7.5 inch E-Ink display."""
 
-## Image to R/B/W 3 color eink to display, though black and white works fine
-
 import sys
 import time
 
@@ -11,10 +9,10 @@ from waveshare_epd import epd7in5b_V2
 
 EPD_WIDTH = 800  # pixels
 EPD_HEIGHT = 480  # pixels
-RED_THRESHOLD = 60
+RED_THRESHOLD = 60 # percent
 
 # Define the picture directory
-LOCAL_IMG = "/images/fetched-image.png"
+LOCAL_IMG = "./images/fetched-image.png"
 
 
 def load_image():
