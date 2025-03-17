@@ -1,0 +1,4 @@
+requests
+RPi.GPIO
+waveshare-epaper
+Pillow

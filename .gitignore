@@ -1,0 +1,7 @@
+__pycache__
+images/
+lib/
+bin/
+lib64
+state.json
+pyvenv.cfg
