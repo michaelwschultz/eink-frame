@@ -1,49 +1,67 @@
+"""Rotary Encoder and Button Control for Raspberry Pi"""
+
 import time
 import subprocess
 
 import RPi.GPIO as GPIO
 
-# GPIO Pins
-CLK = 31  # Clock pin
-DT = 37  # Data pin
-SW = 36  # Switch pin
 
-# Setup
-GPIO.setmode(GPIO.BOARD)
-GPIO.setup(CLK, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(DT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(SW, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+class RotaryEncoder:
+    """Class to handle rotary encoder and button events."""
 
-# Track last state of CLK
-last_clk_state = GPIO.input(CLK)
+    def __init__(self):
+        # GPIO Pins
+        self.clk = 31  # Clock pin
+        self.dt = 37  # Data pin
+        self.sw = 36  # Switch pin
+
+        # Setup
+        GPIO.setmode(GPIO.BOARD)
+        GPIO.setup(self.clk, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.setup(self.dt, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.setup(self.sw, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+        # Track last state of CLK
+        self.last_clk_state = GPIO.input(self.clk)
+
+        # Add event detection
+        GPIO.add_event_detect(
+            self.clk, GPIO.BOTH, callback=self.rotary_callback, bouncetime=10
+        )
+        GPIO.add_event_detect(
+            self.sw, GPIO.FALLING, callback=self.button_callback, bouncetime=200
+        )
+
+    def rotary_callback(self):
+        """Callback function for rotary encoder rotation."""
+        clk_state = GPIO.input(self.clk)
+        dt_state = GPIO.input(self.dt)
+
+        if clk_state != self.last_clk_state:  # Detect rotation
+            if dt_state != clk_state:
+                print("Rotated Clockwise")
+            else:
+                print("Rotated Counterclockwise")
+
+        self.last_clk_state = clk_state
+
+    def button_callback(self):
+        """Callback function for button press."""
+        subprocess.run(["python", "fetch_and_display_image.py"], check=True)
 
 
-def rotary_callback(channel):
-    global last_clk_state
-    clk_state = GPIO.input(CLK)
-    dt_state = GPIO.input(DT)
+if __name__ == "__main__":
 
-    if clk_state != last_clk_state:  # Detect rotation
-        if dt_state != clk_state:
-            print("Rotated Clockwise")
-        else:
-            print("Rotated Counterclockwise")
+    def cleanup():
+        """Cleanup GPIO settings."""
+        GPIO.cleanup()
 
-    last_clk_state = clk_state
-
-
-def button_callback(channel):
-    subprocess.run(["python", "fetch_and_display_image.py"])
-
-
-# Add event detection
-GPIO.add_event_detect(CLK, GPIO.BOTH, callback=rotary_callback, bouncetime=10)
-GPIO.add_event_detect(SW, GPIO.FALLING, callback=button_callback, bouncetime=200)
-
-try:
-    while True:
-        time.sleep(0.1)  # Keep the script running
-
-except KeyboardInterrupt:
-    print("\nExiting...")
-    GPIO.cleanup()
+    try:
+        encoder = RotaryEncoder()
+        while True:
+            time.sleep(0.1)  # Keep the script running
+    except KeyboardInterrupt as e:
+        print("Exiting...")
+        cleanup()
+    finally:
+        cleanup()
