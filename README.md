@@ -21,7 +21,7 @@
 
 - Create a free account on val.town and **remix** the [eink-frame project](https://www.val.town/x/michaelwschultz/eink-frame)
 - Remove or add any frames you want and make sure to update the list near the beginning of index.tsx to include all the frames you want your device to pull from
-- Follow the README, as you'll also need a [Flash API](https://flashapi.com) api key for image generation.
+- Follow the README, as you'll also need a [API Flash](https://apiflash.com/) api key for image generation.
 - Clone this repo to your arduino or raspberry pi. Make sure you're device has internet access.
 - Update the `BACKEND_URL` in [fetch_and_display_image.py](https://github.com/michaelwschultz/eink-frame/blob/main/fetch_and_display_image.py) with your remix of the val.town project
 - You may also need to update the imported waveshare eink display you're using in [send_to_display.py](https://github.com/michaelwschultz/eink-frame/blob/main/send_to_display.py)
