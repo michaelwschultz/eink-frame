@@ -7,6 +7,7 @@ import argparse
 
 import requests
 from send_to_display import send_image_to_display
+from wifi_setup import connect_with_saved_credentials
 
 STATE_FILE = "state.json"
 START_TIME = time.time()
@@ -96,6 +97,9 @@ def fetch_image(frame_list, next_state):
 
 def main(frame):
     """Main function to control the flow of the script."""
+    # Auto-connect to WiFi using saved credentials if needed
+    connect_with_saved_credentials()
+
     if frame is not None:
         fetch_image([frame], 0)
     else:
