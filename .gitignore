@@ -4,4 +4,5 @@ lib/
 bin/
 lib64
 state.json
+wifi_credentials.json
 pyvenv.cfg

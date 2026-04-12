@@ -26,7 +26,6 @@
 - Update the `BACKEND_URL` in [fetch_and_display_image.py](https://github.com/michaelwschultz/eink-frame/blob/main/fetch_and_display_image.py) with your remix of the val.town project
 - You may also need to update the imported waveshare eink display you're using in [send_to_display.py](https://github.com/michaelwschultz/eink-frame/blob/main/send_to_display.py)
 
-
 ## Usage
 
 ```shell
@@ -38,6 +37,39 @@ You can also tell it which frame to display using the param -F or --frame.
 ```shell
 python fetch_and_display_image.py --frame weather
 ```
+
+### WiFi Setup
+
+If your WiFi credentials change, you don't need to SSH into the Pi or rebuild
+anything. Just run the setup portal from your phone:
+
+```shell
+python wifi_setup.py
+```
+
+This creates a temporary WiFi access point called **eink-frame-setup**. Connect
+to it from your phone and a setup page will automatically appear where you can
+enter your new SSID and password. Once connected, the Pi shuts down the access
+point and joins your network.
+
+**How it works:**
+1. The Pi creates an open access point (`eink-frame-setup`)
+2. A captive-portal-style web page is served at `http://10.0.0.1`
+3. Enter your WiFi network name and password on the page
+4. The Pi saves the credentials to `wifi_credentials.json` and connects
+5. The access point shuts down automatically
+
+**Auto-connect on startup:** The main script (`fetch_and_display_image.py`) now
+attempts to connect using saved credentials before fetching images. If your Pi
+loses power and reconnects, it'll automatically rejoin your WiFi network.
+
+**To manually connect with saved credentials** (without starting the portal):
+```shell
+python wifi_setup.py --connect
+```
+
+**Prerequisites:** The setup portal requires `hostapd` and `dnsmasq`, which are
+installed automatically on first run if missing.
 
 ### Remote backend for fetching data
 
