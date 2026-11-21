@@ -11,7 +11,7 @@ from wifi_setup import connect_with_saved_credentials
 
 STATE_FILE = "state.json"
 START_TIME = time.time()
-BACKEND_URL = "https://michaelwschultz--3506d8cafe2211efb693569c3dd06744.web.val.run"
+BACKEND_URL = "https://eink.schultz.co"
 
 
 def get_current_state(frame_list):

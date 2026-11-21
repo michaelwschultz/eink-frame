@@ -11,7 +11,7 @@
 - This script currently runs on a Raspberry pi zero w that's connected to the
   net.
 - It fetches a list of frame screens to be displayed via
-  [val.town](https://www.val.town/x/michaelwschultz/eink-frame) (feel free to use your own backend)
+  [eink.schultz.co](https://eink.schultz.co) (feel free to use your own backend)
 - That list is then used to fetch the the next image in rotation based on which
   one is currently being displayed on the connected eink display derived from
   state.json.
@@ -19,11 +19,8 @@
 
 ## Setup
 
-- Create a free account on val.town and **remix** the [eink-frame project](https://www.val.town/x/michaelwschultz/eink-frame)
-- Remove or add any frames you want and make sure to update the list near the beginning of index.tsx to include all the frames you want your device to pull from
-- Follow the README, as you'll also need a [API Flash](https://apiflash.com/) api key for image generation.
-- Clone this repo to your arduino or raspberry pi. Make sure you're device has internet access.
-- Update the `BACKEND_URL` in [fetch_and_display_image.py](https://github.com/michaelwschultz/eink-frame/blob/main/fetch_and_display_image.py) with your remix of the val.town project
+- Clone this repo to your arduino or raspberry pi. Make sure your device has internet access.
+- Update `BACKEND_URL` in [fetch_and_display_image.py](https://github.com/michaelwschultz/eink-frame/blob/main/fetch_and_display_image.py) if you want to point to your own backend instead of `https://eink.schultz.co`
 - You may also need to update the imported waveshare eink display you're using in [send_to_display.py](https://github.com/michaelwschultz/eink-frame/blob/main/send_to_display.py)
 
 ## Usage
@@ -73,12 +70,10 @@ installed automatically on first run if missing.
 
 ### Remote backend for fetching data
 
-For ease of iteration, the backend was created on
-[val.town](https://www.val.town/x/michaelwschultz/eink-frame). There you can view
-each frame and remix them if you'd like. You can view the image that will be
-sent down to the pi and make any changes you'd like. You can also control the
-list of images you'd like to show up on your pi so you don't have to log into
-the pi to change anything once it's set up.
+The backend runs at [eink.schultz.co](https://eink.schultz.co). It serves the
+list of frames (`?generate=list`) and generates the frame images
+(`?frame=<name>&generate=image`) sent down to the Pi, so you can control which
+frames rotate on the display without logging into the Pi once it's set up.
 
 ### Add startup process using pm2
 
