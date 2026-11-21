@@ -5,6 +5,8 @@ from contextlib import contextmanager
 import json
 import os
 import re
+import subprocess
+import sys
 import time
 
 try:
@@ -13,9 +15,9 @@ except ImportError:  # Windows local dev
     fcntl = None
 
 import requests
-from send_to_display import send_image_to_display
 from wifi_setup import connect_with_saved_credentials
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATE_FILE = "state.json"
 IMAGES_DIR = "images"
 OUTPUT_PATH = os.path.join(IMAGES_DIR, "fetched-image.png")
@@ -170,12 +172,18 @@ def fetch_image(frame_list, next_state):
     return fetch_image_by_name(frame_list[next_state])
 
 
+def run_send_to_display():
+    """Run send_to_display.py in a subprocess so GPIO pins are released after each refresh."""
+    script_path = os.path.join(BASE_DIR, "send_to_display.py")
+    subprocess.run([sys.executable, script_path], cwd=BASE_DIR, check=True)
+
+
 def display_frame(frame_name):
     """Fetch frame_name and push it to the e-ink display under the SPI lock."""
     with display_lock():
         if not fetch_image_by_name(frame_name):
             return False
-        send_image_to_display()
+        run_send_to_display()
         return True
 
 

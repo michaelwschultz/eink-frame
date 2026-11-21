@@ -1,4 +1,5 @@
 requests
 RPi.GPIO
+gpiozero
 waveshare-epaper
 Pillow

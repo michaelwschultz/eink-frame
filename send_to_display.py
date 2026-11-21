@@ -3,7 +3,13 @@
 import time
 
 from PIL import Image
-from waveshare_epd import epd7in5b_V2  # pylint: disable=E0401
+
+try:
+    from waveshare_epd import epd7in5b_V2  # pylint: disable=E0401
+except ModuleNotFoundError:
+    import epaper  # pylint: disable=E0401
+
+    epd7in5b_V2 = epaper.epaper("epd7in5b_V2")
 
 EPD_WIDTH = 800  # pixels
 EPD_HEIGHT = 480  # pixels
