@@ -1,0 +1,15 @@
+[Unit]
+Description=E-ink frame HTTP control server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/eink-frame
+ExecStart=/root/eink-frame/.venv/bin/python /root/eink-frame/server.py --port 8080
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

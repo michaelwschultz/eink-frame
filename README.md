@@ -66,10 +66,109 @@ pip install -r requirements.txt
 python fetch_and_display_image.py
 ```
 
-You can also tell it which frame to display using the param -F or --frame.
+You can also tell it which frame to display, or step forward/backward in the list:
 ```shell
 python fetch_and_display_image.py --frame weather
+python fetch_and_display_image.py --next
+python fetch_and_display_image.py --prev
 ```
+
+### Remote Control Server (Web UI → Pi)
+
+Run [server.py](./server.py) on the Pi (for example behind a Pangolin Newt tunnel
+pointing at `http://localhost:8080`) so the web UI can remotely trigger frame
+changes on the device:
+
+```shell
+python server.py --port 8080
+```
+
+#### Environment variables
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `EINK_HOST` | `0.0.0.0` | Bind address (overridden by `--host`) |
+| `EINK_PORT` | `8080` | Bind port (overridden by `--port`) |
+| `EINK_BACKEND_URL` | `https://eink.schultz.co` | Backend used to fetch `/api/frames` and `/img/<name>.png` |
+| `EINK_API_TOKEN` | *(empty — auth disabled)* | If set, all endpoints except `GET /health` require `Authorization: Bearer <token>` or `X-API-Key: <token>` |
+| `EINK_CORS_ORIGIN` | `*` | Value for `Access-Control-Allow-Origin` (`OPTIONS` preflight returns `204`) |
+
+#### API Reference
+
+All responses are JSON (`Content-Type: application/json`).
+
+| Method & Path | Aliases | Purpose | Success Status |
+| --- | --- | --- | --- |
+| `GET /health` | — | Liveness check (never requires auth) | `200 OK` |
+| `GET /status` | `GET /` | Current display & worker state | `200 OK` |
+| `POST /next` | `POST /frame/next` | Advance to the next frame in `/api/frames` (wraps around) | `202 Accepted` (`200` with `?sync=true`) |
+| `POST /prev` | `POST /previous`, `POST /frame/prev`, `POST /frame/previous` | Step back to the previous frame in `/api/frames` (wraps around) | `202 Accepted` (`200` with `?sync=true`) |
+| `POST /frame/<name>` | — | Display a specific frame by name (matches `^[A-Za-z0-9_-]+$`; works for any frame served at `/img/<name>.png`, even if not in the active rotation) | `202 Accepted` (`200` with `?sync=true`) |
+| `POST /frame` | — | Same as `POST /frame/<name>`, passing `{"frame": "<name>"}` as JSON body | `202 Accepted` (`200` with `?sync=true`) |
+
+#### Response schemas
+
+- **`GET /health` (`200 OK`)**
+  ```json
+  { "status": "ok" }
+  ```
+- **`GET /status` (`200 OK`)**
+  ```json
+  {
+    "status": "idle",
+    "busy": false,
+    "current_frame": "weather",
+    "pending_frame": null,
+    "last_displayed": 0,
+    "last_updated": "2026-11-21T22:45:00+00:00",
+    "last_error": null
+  }
+  ```
+  - `status`: `"idle"` or `"updating"`
+  - `busy`: `true` while fetching/writing to the e-ink display (~15–25s)
+  - `current_frame`: last successfully displayed frame name (or `null` if unknown)
+  - `pending_frame`: queued frame waiting for the current refresh to finish (or `null`)
+  - `last_displayed`: current index in `state.json`
+  - `last_updated`: ISO-8601 UTC timestamp of last successful refresh (or `null`)
+  - `last_error`: error string from the most recent failed refresh (or `null`)
+- **`POST /next`, `POST /prev`, `POST /frame/<name>`, `POST /frame`**
+  - Default (async, **`202 Accepted`**): returns immediately with the resolved target frame while the Pi refreshes in the background:
+    ```json
+    {
+      "status": "accepted",
+      "action": "next",
+      "frame": "rss",
+      "index": 1
+    }
+    ```
+    (`action` is `"next"`, `"prev"`, or `"set"`.)
+  - With `?sync=true` (**`200 OK`**): blocks until the refresh finishes (up to 60s) and returns the same payload with `"status": "displayed"`.
+- **Error responses** (`{"error": "<message>"}`):
+  - `400 Bad Request` — invalid frame name or missing `frame` field in JSON body
+  - `401 Unauthorized` — missing/invalid token when `EINK_API_TOKEN` is set
+  - `404 Not Found` — unknown path
+  - `502 Bad Gateway` — (`?sync=true` only) backend image fetch or display update failed
+  - `504 Gateway Timeout` — (`?sync=true` only) refresh did not finish within 60s
+
+#### Web UI integration notes
+
+- **Async UX:** E-ink refreshes take ~15–25 seconds. Call the `POST` endpoints without `?sync=true` for an immediate `202` response containing the target `frame`, then optionally poll `GET /status` every 2–3 seconds until `busy === false && pending_frame === null` to reflect completion or `last_error` in the UI.
+- **Rapid clicks & timer safety:** If a refresh is already running, additional `POST` requests coalesce (latest requested frame wins) and render immediately after the active refresh completes. All SPI writes use an exclusive lock (`/tmp/eink-frame.lock`), so scheduled `systemd` timer runs and remote API calls will not collide.
+- **Examples:**
+  ```shell
+  # Step forward / backward
+  curl -X POST https://<pi-tunnel-host>/next
+  curl -X POST https://<pi-tunnel-host>/prev
+
+  # Jump to a specific frame (path param or JSON body)
+  curl -X POST https://<pi-tunnel-host>/frame/apod
+  curl -X POST https://<pi-tunnel-host>/frame \
+    -H "Content-Type: application/json" \
+    -d '{"frame":"apod"}'
+
+  # Check current display status
+  curl https://<pi-tunnel-host>/status
+  ```
 
 ### WiFi Setup
 
@@ -107,21 +206,23 @@ installed automatically on first run if missing.
 ### Remote backend for fetching data
 
 The backend runs at [eink.schultz.co](https://eink.schultz.co). It serves the
-list of frames (`?generate=list`) and generates the frame images
-(`?frame=<name>&generate=image`) sent down to the Pi, so you can control which
+list of frames (`/api/frames`) and generates the frame images
+(`/img/<name>.png`) sent down to the Pi, so you can control which
 frames rotate on the display without logging into the Pi once it's set up.
 
-### Run at boot and on a schedule using systemd (recommended on DietPi)
+### Run at boot, on a schedule, and keep the control server running (systemd)
 
-Copy [systemd/eink-frame.service](./systemd/eink-frame.service) and
-[systemd/eink-frame.timer](./systemd/eink-frame.timer) into `/etc/systemd/system/`
-(update `User` and paths in `eink-frame.service` if the repo isn't in `/root/eink-frame`):
+Copy [systemd/eink-frame.service](./systemd/eink-frame.service),
+[systemd/eink-frame.timer](./systemd/eink-frame.timer), and (optionally)
+[systemd/eink-frame-server.service](./systemd/eink-frame-server.service) into
+`/etc/systemd/system/` (update `User` and paths if the repo isn't in `/root/eink-frame`):
 
 ```shell
-sudo cp systemd/eink-frame.service systemd/eink-frame.timer /etc/systemd/system/
+sudo cp systemd/eink-frame.service systemd/eink-frame.timer systemd/eink-frame-server.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable eink-frame.service
 sudo systemctl enable --now eink-frame.timer
+sudo systemctl enable --now eink-frame-server.service
 ```
 
 To test immediately and view logs:
@@ -129,6 +230,7 @@ To test immediately and view logs:
 ```shell
 sudo systemctl start eink-frame.service
 journalctl -u eink-frame.service -n 50 --no-pager
+journalctl -u eink-frame-server.service -n 50 --no-pager
 systemctl list-timers eink-frame.timer
 ```
 

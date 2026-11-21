@@ -1,6 +1,5 @@
 """This script is used to send an image to a Waveshare 7.5 inch E-Ink display."""
 
-import sys
 import time
 
 from PIL import Image
@@ -73,8 +72,6 @@ def send_image_to_display():
         print("Ctrl + C: Exiting...")
         epd.Dev_exit()
         epd.sleep()
-
-    sys.exit()
 
 
 if __name__ == "__main__":
