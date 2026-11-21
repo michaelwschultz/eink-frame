@@ -19,7 +19,43 @@
 
 ## Setup
 
-- Clone this repo to your arduino or raspberry pi. Make sure your device has internet access.
+### Installing DietPi (with SPI support)
+
+1. Flash a **DietPi** image for your Raspberry Pi (e.g., Raspberry Pi Zero 2 W) onto a microSD card.
+2. Before ejecting the SD card, edit these files on the boot partition for headless WiFi, SSH (enabled by default on DietPi), and SPI:
+   - **`dietpi.txt`**:
+     ```ini
+     AUTO_SETUP_NET_WIFI_ENABLED=1
+     AUTO_SETUP_NET_WIFI_COUNTRY_CODE=US
+     AUTO_SETUP_NET_HOSTNAME=eink-frame
+     ```
+   - **`dietpi-wifi.txt`**:
+     ```ini
+     aWIFI_SSID[0]='YOUR_WIFI_NAME'
+     aWIFI_KEY[0]='YOUR_WIFI_PASSWORD'
+     ```
+   - **`config.txt`** (enables SPI for the Waveshare display):
+     ```ini
+     dtparam=spi=on
+     ```
+3. Boot the Pi, wait 2–3 minutes for first-run setup, then SSH in (`ssh root@<pi-ip>`, default password `dietpi`).
+4. Run `dietpi-config` to verify two settings:
+   - **Advanced Options → SPI State → On** (if not already enabled via `config.txt`; reboot if prompted)
+   - **Network Options: Misc → Boot Wait for Network → On** (so boot services wait for WiFi)
+5. Install system packages, clone this repo, and set up a Python virtual environment:
+   ```shell
+   apt update && apt install -y git python3 python3-venv python3-dev build-essential libopenjp2-7
+   git clone https://github.com/michaelwschultz/eink-frame.git
+   cd eink-frame
+   mkdir -p images
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
+   ```
+   *(If `RPi.GPIO` fails on newer kernels such as Debian Trixie, install `rpi-lgpio` and `spidev` inside the venv.)*
+
+### Project configuration
+
 - Update `BACKEND_URL` in [fetch_and_display_image.py](https://github.com/michaelwschultz/eink-frame/blob/main/fetch_and_display_image.py) if you want to point to your own backend instead of `https://eink.schultz.co`
 - You may also need to update the imported waveshare eink display you're using in [send_to_display.py](https://github.com/michaelwschultz/eink-frame/blob/main/send_to_display.py)
 
@@ -75,7 +111,28 @@ list of frames (`?generate=list`) and generates the frame images
 (`?frame=<name>&generate=image`) sent down to the Pi, so you can control which
 frames rotate on the display without logging into the Pi once it's set up.
 
-### Add startup process using pm2
+### Run at boot and on a schedule using systemd (recommended on DietPi)
+
+Copy [systemd/eink-frame.service](./systemd/eink-frame.service) and
+[systemd/eink-frame.timer](./systemd/eink-frame.timer) into `/etc/systemd/system/`
+(update `User` and paths in `eink-frame.service` if the repo isn't in `/root/eink-frame`):
+
+```shell
+sudo cp systemd/eink-frame.service systemd/eink-frame.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable eink-frame.service
+sudo systemctl enable --now eink-frame.timer
+```
+
+To test immediately and view logs:
+
+```shell
+sudo systemctl start eink-frame.service
+journalctl -u eink-frame.service -n 50 --no-pager
+systemctl list-timers eink-frame.timer
+```
+
+### Alternative: Add startup process using pm2
 
 ```shell
 pm2 start fetch_and_display_image.py --name fetch_and_display --no-autorestart --cron "0 7,19 * * *"

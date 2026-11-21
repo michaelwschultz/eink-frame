@@ -1,0 +1,9 @@
+[Unit]
+Description=Refresh e-ink frame at 7am and 7pm
+
+[Timer]
+OnCalendar=*-*-* 07,19:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

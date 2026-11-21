@@ -1,0 +1,13 @@
+[Unit]
+Description=Fetch and display next e-ink frame
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/eink-frame
+ExecStart=/root/eink-frame/.venv/bin/python /root/eink-frame/fetch_and_display_image.py
+
+[Install]
+WantedBy=multi-user.target
