@@ -44,7 +44,7 @@
    - **Network Options: Misc → Boot Wait for Network → On** (so boot services wait for WiFi)
 5. Install system packages, clone this repo, and set up a Python virtual environment:
    ```shell
-   apt update && apt install -y git python3 python3-venv python3-dev build-essential libopenjp2-7
+   apt update && apt install -y git python3 python3-venv python3-dev build-essential libopenjp2-7 swig liblgpio-dev
    git clone https://github.com/michaelwschultz/eink-frame.git
    cd eink-frame
    mkdir -p images
@@ -52,7 +52,6 @@
    source .venv/bin/activate
    pip install -r requirements.txt
    ```
-   *(If `RPi.GPIO` fails on newer kernels such as Debian Trixie, install `rpi-lgpio` and `spidev` inside the venv.)*
 
 ### Project configuration
 
@@ -125,7 +124,7 @@ All responses are JSON (`Content-Type: application/json`).
   }
   ```
   - `status`: `"idle"` or `"updating"`
-  - `busy`: `true` while fetching/writing to the e-ink display (~15–25s)
+  - `busy`: `true` while fetching/writing to the e-ink display (~25–35s)
   - `current_frame`: last successfully displayed frame name (or `null` if unknown)
   - `pending_frame`: queued frame waiting for the current refresh to finish (or `null`)
   - `last_displayed`: current index in `state.json`
@@ -152,7 +151,7 @@ All responses are JSON (`Content-Type: application/json`).
 
 #### Web UI integration notes
 
-- **Async UX:** E-ink refreshes take ~15–25 seconds. Call the `POST` endpoints without `?sync=true` for an immediate `202` response containing the target `frame`, then optionally poll `GET /status` every 2–3 seconds until `busy === false && pending_frame === null` to reflect completion or `last_error` in the UI.
+- **Async UX:** E-ink refreshes take ~25–35 seconds. Call the `POST` endpoints without `?sync=true` for an immediate `202` response containing the target `frame`, then optionally poll `GET /status` every 2–3 seconds until `busy === false && pending_frame === null` to reflect completion or `last_error` in the UI.
 - **Rapid clicks & timer safety:** If a refresh is already running, additional `POST` requests coalesce (latest requested frame wins) and render immediately after the active refresh completes. All SPI writes use an exclusive lock (`/tmp/eink-frame.lock`), so scheduled `systemd` timer runs and remote API calls will not collide.
 - **Examples:**
   ```shell
