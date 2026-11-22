@@ -15,6 +15,7 @@ except ImportError:  # Windows local dev
     fcntl = None
 
 import requests
+from error_card import render_error_card
 from wifi_setup import connect_with_saved_credentials
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -111,7 +112,7 @@ def set_named_state(frame_list, frame_name):
     return index
 
 
-def fetch_frame_list():
+def fetch_frame_list(allow_fallback=True):
     """Fetch the list of frame states from the server."""
     url = f"{BACKEND_URL}/api/frames"
     default_frames = ["weather", "hemolog"]
@@ -126,11 +127,11 @@ def fetch_frame_list():
                 return frame_list
 
         print(f"Failed to fetch list of frames. Status code: {response.status_code}")
-        return default_frames
+        return default_frames if allow_fallback else None
 
     except (requests.RequestException, json.JSONDecodeError) as err:
         print(f"An error occurred: {err}")
-        return default_frames
+        return default_frames if allow_fallback else None
 
 
 def fetch_image_by_name(frame_name):
@@ -178,32 +179,55 @@ def run_send_to_display():
     subprocess.run([sys.executable, script_path], cwd=BASE_DIR, check=True)
 
 
-def display_frame(frame_name):
+def display_error_card(detail=None):
+    """Render and display the offline fallback card under the SPI lock."""
+    with display_lock():
+        render_error_card(OUTPUT_PATH, backend_url=BACKEND_URL, detail=detail)
+        run_send_to_display()
+
+
+def display_frame(frame_name, show_error_card=True):
     """Fetch frame_name and push it to the e-ink display under the SPI lock."""
     with display_lock():
         if not fetch_image_by_name(frame_name):
+            if show_error_card:
+                print("Backend unreachable; displaying fallback error card...")
+                render_error_card(OUTPUT_PATH, backend_url=BACKEND_URL)
+                run_send_to_display()
             return False
         run_send_to_display()
         return True
 
 
-def main(frame=None, step=1):
+def main(frame=None, step=1, show_error_card_now=False):
     """Main function to control the flow of the script."""
+    if show_error_card_now:
+        display_error_card()
+        return True
+
     connect_with_saved_credentials()
-    frame_list = fetch_frame_list()
+    frame_list = fetch_frame_list(allow_fallback=False)
 
     if frame is not None:
         if not is_valid_frame_name(frame):
             print(f"Invalid frame name: {frame!r}")
             return False
-        set_named_state(frame_list, frame)
-        target_frame = frame
-    else:
-        current_state = get_current_state(frame_list)
-        next_state = set_next_state(frame_list, current_state, step=step)
-        target_frame = frame_list[next_state]
+        succeeded = display_frame(frame)
+        if succeeded and frame_list:
+            set_named_state(frame_list, frame)
+        return succeeded
 
-    return display_frame(target_frame)
+    if not frame_list:
+        print("Unable to fetch frame list; displaying fallback error card...")
+        display_error_card()
+        return False
+
+    current_state = get_current_state(frame_list)
+    target_frame = frame_list[(current_state + step) % len(frame_list)]
+    succeeded = display_frame(target_frame)
+    if succeeded:
+        set_next_state(frame_list, current_state, step=step)
+    return succeeded
 
 
 if __name__ == "__main__":
@@ -228,6 +252,15 @@ if __name__ == "__main__":
         action="store_true",
         help="Go back to the previous frame in the list.",
     )
+    group.add_argument(
+        "--error-card",
+        action="store_true",
+        help="Render and display the offline fallback error card.",
+    )
 
     args = parser.parse_args()
-    main(frame=args.frame, step=-1 if args.prev else 1)
+    main(
+        frame=args.frame,
+        step=-1 if args.prev else 1,
+        show_error_card_now=args.error_card,
+    )

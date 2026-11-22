@@ -44,7 +44,7 @@
    - **Network Options: Misc → Boot Wait for Network → On** (so boot services wait for WiFi)
 5. Install system packages, clone this repo, and set up a Python virtual environment:
    ```shell
-   apt update && apt install -y git python3 python3-venv python3-dev build-essential libopenjp2-7 swig liblgpio-dev
+   apt update && apt install -y git python3 python3-venv python3-dev build-essential libopenjp2-7 swig liblgpio-dev fonts-dejavu-core
    git clone https://github.com/michaelwschultz/eink-frame.git
    cd eink-frame
    mkdir -p images
@@ -65,12 +65,17 @@ pip install -r requirements.txt
 python fetch_and_display_image.py
 ```
 
-You can also tell it which frame to display, or step forward/backward in the list:
+You can also tell it which frame to display, step forward/backward in the list, or preview the offline fallback card:
 ```shell
 python fetch_and_display_image.py --frame weather
 python fetch_and_display_image.py --next
 python fetch_and_display_image.py --prev
+python fetch_and_display_image.py --error-card
 ```
+
+If the backend cannot be reached during a refresh, the Pi automatically renders
+a fallback **"Unable to connect to server"** card (pure red icon with black
+text) onto the display without advancing `state.json`.
 
 ### Remote Control Server (Web UI → Pi)
 
